@@ -1,4 +1,4 @@
-name: Build CYD_DD Firmware
+name: Build CYD_DD Release
 
 on:
   workflow_dispatch:
@@ -20,17 +20,19 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
-      - name: Build Firmware
-        run: pio run
+      - name: Build Merged Release Firmware
+        run: pio run -e release -t merged
 
-      - name: List Generated Binaries
+      - name: Show Generated Binaries
         run: find . -name "*.bin"
 
       - name: Upload Compiled Binaries
         uses: actions/upload-artifact@v4
         with:
-          name: CYD_DD-firmware
+          name: CYD_DD-release-firmware
           include-hidden-files: true
           path: |
-            .pio/build/**/*.bin
-            **/*.bin
+            .pio/build/release/*.bin
+            *.bin
+            releases/*.bin
+            build/*.bin
