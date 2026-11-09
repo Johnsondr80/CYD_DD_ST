@@ -20,9 +20,9 @@ jobs:
             ~/.platformio/.cache
             ~/.platformio/packages
             ~/.platformio/platforms
-          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          key: ${{ runner.os }}-pio-v2-${{ hashFiles('platformio.ini') }}
           restore-keys: |
-            ${{ runner.os }}-pio-
+            ${{ runner.os }}-pio-v2-
 
       - name: Set up Python
         uses: actions/setup-python@v5
@@ -32,13 +32,21 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
-      - name: Build Merged Release Firmware (with auto-retry)
+      - name: Pre-fetch Slow GitHub Release Packages with Curl
         run: |
-          for i in 1 2 3; do
-            pio run -e release -t merged && break
-            echo "Attempt $i failed (likely GitHub 504 timeout), retrying in 10s..."
-            sleep 10
+          mkdir -p ~/.platformio/.cache/downloads
+          curl -L --retry 10 --retry-delay 5 --retry-all-errors --connect-timeout 30 --max-time 600 \
+            -C - -o ~/.platformio/.cache/downloads/esptoolpy-v5.1.0.zip \
+            https://github.com/pioarduino/registry/releases/download/0.0.1/esptoolpy-v5.1.0.zip || true
+
+      - name: Build Merged Release Firmware
+        run: |
+          for i in 1 2 3 4 5; do
+            pio run -e release -t merged && exit 0
+            echo "Attempt $i failed, retrying in 15s..."
+            sleep 15
           done
+          exit 1
 
       - name: Show Generated Binaries
         run: find . -name "*.bin"
@@ -49,7 +57,5 @@ jobs:
           name: CYD_DD-release-firmware
           include-hidden-files: true
           path: |
-            .pio/build/release/*.bin
-            *.bin
-            releases/*.bin
-            build/*.bin
+            .pio/**/*.bin
+            **/*.bin
