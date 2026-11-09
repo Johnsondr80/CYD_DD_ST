@@ -23,10 +23,14 @@ jobs:
       - name: Build Firmware
         run: pio run
 
+      - name: List Generated Binaries
+        run: find . -name "*.bin"
+
       - name: Upload Compiled Binaries
         uses: actions/upload-artifact@v4
         with:
           name: CYD_DD-firmware
+          include-hidden-files: true
           path: |
             .pio/build/**/*.bin
             **/*.bin
