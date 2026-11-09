@@ -12,6 +12,18 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Cache PlatformIO Packages
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cache/pip
+            ~/.platformio/.cache
+            ~/.platformio/packages
+            ~/.platformio/platforms
+          key: ${{ runner.os }}-pio-${{ hashFiles('platformio.ini') }}
+          restore-keys: |
+            ${{ runner.os }}-pio-
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -20,8 +32,13 @@ jobs:
       - name: Install PlatformIO
         run: pip install platformio
 
-      - name: Build Merged Release Firmware
-        run: pio run -e release -t merged
+      - name: Build Merged Release Firmware (with auto-retry)
+        run: |
+          for i in 1 2 3; do
+            pio run -e release -t merged && break
+            echo "Attempt $i failed (likely GitHub 504 timeout), retrying in 10s..."
+            sleep 10
+          done
 
       - name: Show Generated Binaries
         run: find . -name "*.bin"
